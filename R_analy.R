@@ -184,3 +184,6 @@ qplot(x= color,y = price/carat ,geom = 'boxplot', data = diamonds,fill = color)
 qplot(x= carat ,binwidth =0.1,geom = 'freqpoly', data = diamonds)+
   scale_x_continuous(limits = c(0, 3), breaks = seq(0, 10, 0.1)) +
   scale_y_continuous(breaks = seq(0,12000,1000))
+#######################################################
+# finished lesson1
+#########################################################
