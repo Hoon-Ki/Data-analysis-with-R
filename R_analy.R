@@ -187,3 +187,91 @@ qplot(x= carat ,binwidth =0.1,geom = 'freqpoly', data = diamonds)+
 #######################################################
 # finished lesson1
 #########################################################
+
+########################################################
+#lesson2
+#######################################################
+
+##scatter plot
+qplot(x = age, y = friend_count, data= pf)
+#or
+ggplot(aes(x = age, y = friend_count), data = pf) + 
+  geom_point()
+
+## ggplot syntax
+
+summary(pf$age)
+ggplot(aes(x = age, y = friend_count), data = pf) + 
+  geom_point()+xlim(13,90)
+
+##overplotting
+##coord_trans()
+ggplot(aes(x = age, y = friend_count), data = pf) + 
+  geom_point(alpha = 0.05, position = position_jitter(h=0))+xlim(13,90) +coord_trans(y='sqrt')
+
+##Alpha and jitter
+ggplot(aes(x=age, y=friendships_initiated),data = pf)+geom_point()+
+  geom_jitter(alpha=1/10)
+# or
+ggplot(aes(x=age, y=friendships_initiated),data = pf)+geom_point(alpha =1/10,position = 'jitter')
+# transform y-axis
+ggplot(aes(x=age, y=friendships_initiated),data = pf)+geom_point(alpha =1/10,position = position_jitter(h=0))+
+  coord_trans(y='sqrt')
+
+##conditional means
+
+#install.packages('dplyr')
+library(dplyr)
+age_groups<-group_by(pf, age)
+pf.fc_by_age1 <-summarise(age_groups,
+                         friend_count_mean = mean(friend_count),
+                         friend_count_median = median(as.numeric(friend_count)),
+                         n = n())
+head(pf.fc_by_age1)
+pf.fc_by_age1<- arrange(pf.fc_by_age,age)
+head(pf.fc_by_age1)
+
+ggplot(aes(x = age, y = friend_count_mean), data = pf.fc_by_age1)+geom_line()
+#or
+
+pf.fc_by_age2<-pf %>%
+  group_by(age) %>%
+  summarise(age_groups,
+            friend_count_mean = mean(friend_count), friend_count_median = median(as.numeric(friend_count)),n = n()) %>%
+  arrange(age)
+
+head(pf.fc_by_age2,20)
+
+
+##overlaying summarys with raw data
+ggplot(aes(x=age, y=friendships_initiated),data = pf)+
+  geom_point(alpha =1/20,position = position_jitter(h=0),color= 'orange')+
+  coord_cartesian(xlim=c(13,70),ylim = c(0,1000))+
+  geom_line(stat = 'summary', fun.y = mean)+
+  geom_line(stat = 'summary', fun.y = quantile, fun.args = list(probs = .9),color = 'blue',linetype =2)+
+  geom_line(stat = 'summary', fun.y = quantile, fun.args = list(probs = .1))+
+  geom_line(stat = 'summary', fun.y = median,color = 'blue',linetype =2)
+
+##correaltion
+cor.test(pf$age,pf$friend_count,method = 'pearson')
+#or
+with(pf,cor.test(age,friend_count,method = 'pearson'))
+
+##correaltion on subsets
+with(subset(pf,age<=70),cor.test(age,friend_count,method = 'pearson'))
+
+##correalation methods
+with(subset(pf,age<=70),cor.test(age,friend_count,method = 'spearman'))
+
+##correalation scatter plot
+qplot(x = www_likes_received ,data=pf)+scale_x_continuous()
+ggplot(aes(x=www_likes_received, y=likes_received),data = pf)+
+  geom_point(alpha =1/20,position = position_jitter(h=0),color= 'orange')+
+  coord_cartesian(xlim=c(0,30),ylim = c(0,70))+
+  geom_line(stat = 'summary', fun.y = mean)+
+  geom_line(stat = 'summary', fun.y = quantile, fun.args = list(probs = .9),color = 'blue',linetype =2)+
+  geom_line(stat = 'summary', fun.y = quantile, fun.args = list(probs = .1))+
+  geom_line(stat = 'summary', fun.y = median,color = 'blue',linetype =2)
+
+with(subset(pf,likes_received<=50 & www_likes_received <=25),cor.test(likes_received,www_likes_received,method = 'kendall'))
+##strong correlation
