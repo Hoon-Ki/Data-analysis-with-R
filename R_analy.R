@@ -228,7 +228,7 @@ pf.fc_by_age1 <-summarise(age_groups,
                          friend_count_median = median(as.numeric(friend_count)),
                          n = n())
 head(pf.fc_by_age1)
-pf.fc_by_age1<- arrange(pf.fc_by_age,age)
+pf.fc_by_age1<- arrange(pf.fc_by_age1,age)
 head(pf.fc_by_age1)
 
 ggplot(aes(x = age, y = friend_count_mean), data = pf.fc_by_age1)+geom_line()
@@ -274,4 +274,98 @@ ggplot(aes(x=www_likes_received, y=likes_received),data = pf)+
   geom_line(stat = 'summary', fun.y = median,color = 'blue',linetype =2)
 
 with(subset(pf,likes_received<=50 & www_likes_received <=25),cor.test(likes_received,www_likes_received,method = 'kendall'))
+
 ##strong correlation
+ggplot(aes(x = www_likes_received, y = likes_received),data = pf)+
+  geom_point()+
+  xlim(0,quantile(pf$www_likes_received,0.95))+
+  ylim(0,quantile(pf$likes_received,0.95))+
+  geom_smooth(method = 'lm', color = 'red')
+
+with(pf,cor.test(www_likes_received,likes_received))
+
+## More Caution with Correaltion
+#install.packages('alr3')
+library(alr3)
+data(Mitchell)
+
+ggplot(aes(y = Temp, x = Month),data = Mitchell)+
+  geom_point()
+qplot(data = Mitchell,Month,Temp)
+
+##Noisy scatterplots
+with(Mitchell, cor.test(Month,Temp))
+
+## Making Sense of Data
+ggplot(aes(y = Temp, x = Month),data = Mitchell)+
+  geom_point()+
+  scale_x_continuous(breaks = seq(0,203,12))
+
+## A new perspective
+
+ggplot(aes(y = Temp, x = Month%%12),data = Mitchell)+
+  geom_point()
+
+#install.packages('energy')
+library(energy)
+x <- seq(0, 4*pi, pi/20)
+y <- cos(x)
+qplot(x = x, y = y)
+dcor.ttest(x, y)
+
+## Understanding Noise : Age to Age month
+
+ggplot(aes(x = age, y = friend_count_mean), data = pf.fc_by_age1
+       )+ geom_line()
+head(pf.fc_by_age1,10)
+pf.fc_by_age1[17:19,]
+
+pf$age_with_months <- pf$age + (1 - pf$dob_month / 12)
+#or
+pf$age_with_months <- with(pf, age + (1 - dob_month / 12))
+
+## Age with Months Means
+
+age_groups<-group_by(pf, age_with_months)
+pf.fc_by_age_months <-summarise(age_groups,
+                          friend_count_mean = mean(friend_count),
+                          friend_count_median = median(as.numeric(friend_count)),
+                          n = n())
+pf.fc_by_age_months<- arrange(pf.fc_by_age_months,age_with_months)
+
+
+'''
+pf.fc_by_age_months<-
+
+  
+with(pf, subset(pf,age_with_months,friend_))
+pf$friend_count_mean<-by(pf$friend_count,pf$age_with_months,mean)
+# or
+aggregate(friend_count~age_with_months,data=pf,'mean')
+aggregate(friend_count~age_with_months,data=pf,'medain')[2]
+aggregate(age_with_months,by)
+'''
+## Noise in conditional means
+
+ggplot(data = subset(pf.fc_by_age_months,age_with_months<71),aes(x = age_with_months, y = friend_count_mean))+
+  geom_line()+
+  scale_x_continuous(breaks = seq(13.16667,113.91667,10))
+
+## smoothing conditional means
+
+p1<-ggplot(aes(x = age, y = friend_count_mean), data = subset(pf.fc_by_age1,age<71)
+)+ geom_line()+geom_smooth()
+
+p2<-ggplot(data = subset(pf.fc_by_age_months,age_with_months<71),aes(x = age_with_months, y = friend_count_mean))+
+  geom_line()+
+  scale_x_continuous(breaks = seq(13.16667,113.91667,10))+
+  geom_smooth()
+
+p3 <- ggplot(aes(x = round(age/5)*5,y = friend_count),data = subset(pf,age<71))+
+  geom_line(stat = 'summary', fun.y = mean)
+library(gridExtra)
+grid.arrange(p3,p2,p1,ncol=1)
+
+#####################################################
+
+#
