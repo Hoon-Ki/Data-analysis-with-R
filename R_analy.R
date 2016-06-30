@@ -368,4 +368,114 @@ grid.arrange(p3,p2,p1,ncol=1)
 
 #####################################################
 
-#
+## price vs x
+
+
+str(diamonds)
+
+#scatter plot
+ggplot(aes(x = x, y = price), data = diamonds)+
+  geom_point()
+
+ggplot(aes(x = carat, y = price), data = diamonds)+
+  geom_point()
+
+ggplot(aes(x = cut, y = price), data = diamonds)+
+  geom_point()
+
+ggplot(aes(x = color, y = price), data = diamonds)+
+  geom_point()
+
+ggplot(aes(x = clarity, y = price), data = diamonds)+
+  geom_point()
+
+ggplot(aes(x = depth, y = price), data = diamonds)+
+  geom_point()
+
+ggplot(aes(x = table, y = price), data = diamonds)+
+  geom_point()
+
+## correlations
+
+with(diamonds, cor.test(price , x ))
+with(diamonds, cor.test(price , y ))
+with(diamonds, cor.test(price , z ))
+
+## price vs depth
+
+ggplot(aes(x = depth, y = price), data = diamonds)+
+  geom_point(alpha=1/100)+
+  scale_x_continuous(breaks = seq(43,79,2))
+
+## correlation - price and depth
+
+with(diamonds, cor.test(price , depth ))
+
+##price vs carat
+
+ggplot(aes(x = carat, y = price), data = diamonds)+
+  geom_point()+
+  xlim(0,quantile(diamonds$carat,0.99))+
+  ylim(0,quantile(diamonds$price,0.99))
+
+## price vs volume(x*y*z) # new variable
+
+diamonds$volume<-with(diamonds,x*y*z)
+ggplot(aes(x = volume ,y = price),data = diamonds)+
+  geom_point()
+  
+with(diamonds, cor.test(price , volume ))
+detach('package:plyr', unload=TRUE)
+library(plyr)
+
+count(diamonds$volume == 0)
+
+## correlations on subsets
+
+ggplot(aes(x = volume ,y = price),data = subset(diamonds,volume!=0 & volume <=800))+
+  geom_point()
+
+with(subset(diamonds,volume!=0 & volume <=800), cor.test(price , volume ))
+
+## adjustments- price vs volume
+#http://www.ats.ucla.edu/stat/r/faq/smooths.htm
+
+'''
+method
+smoothing method (function) to use,
+eg. lm, glm, gam, loess, rlm.
+For datasets with n < 1000 default is loess.
+For datasets with 1000 or more observations defaults to gam.
+'''
+ggplot(aes(x= volume ,y = price),data = subset(diamonds,volume!=0 & volume <=800))+
+  geom_point(alpha = 1/100)+
+  stat_smooth(method = 'lm')
+
+## mean price by clarity
+library(dplyr)
+dia_byclar<- group_by(diamonds,clarity)
+diamondsByClarity <-dplyr::summarise(dia_byclar,
+                              mean_price = mean(price),
+                              median_price = median(as.numeric(price)),
+                              min_price = min(price),
+                              max_price = max(price),
+                              n = n())
+
+dia_bycolr<- group_by(diamonds,color)
+diamondsByColor <-dplyr::summarise(dia_bycolr,
+                                     mean_price = mean(price),
+                                     median_price = median(as.numeric(price)),
+                                     min_price = min(price),
+                                     max_price = max(price),
+                                     n = n())
+## bar charts of mean price
+
+p1<-ggplot(aes(x = clarity, y = mean_price),data = diamondsByClarity)+
+  geom_bar(stat = 'identity') 
+# If you want the heights of the bars to represent values in the data, use stat="identity" and map a variable to the y aesthetic.
+  
+p2<-ggplot(aes(x = color, y = mean_price),data = diamondsByColor)+
+  geom_bar(stat = 'identity')
+
+library(gridExtra)
+grid.arrange(p1,p2,ncol=1)
