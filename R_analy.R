@@ -479,3 +479,414 @@ p2<-ggplot(aes(x = color, y = mean_price),data = diamondsByColor)+
 
 library(gridExtra)
 grid.arrange(p1,p2,ncol=1)
+###########################################################
+# finished lesson2
+###########################################################
+
+#####################################################
+#lesson 3
+
+## Third Qualitative variable
+
+ggplot(aes(x = friend_count),
+       data = subset(pf, !is.na(gender))) + geom_bar()+
+  facet_wrap(~gender)+xlim(0,1000)
+
+ggplot(aes(x = gender, y= age),
+       data = subset(pf, !is.na(gender))) + geom_boxplot()+
+  stat_summary(fun.y = mean, geom = 'point', shape = 4)
+
+ggplot(aes(x=age,y=friend_count),
+       data = subset(pf,!is.na(gender)))+
+  geom_line(aes(color=gender), stat = 'summary', fun.y = median)
+
+# create a new data frame
+library(dplyr)
+
+by_age_gender <- group_by(filter(pf,!is.na(gender)),age,gender)
+pf.fc_by_age_gender1 <- dplyr::summarise(by_age_gender,
+                                 mean_friend_count = mean(friend_count),
+                                 median_friend_count = median(friend_count),
+                                 n = n())
+pf.fc_by_age_gender1<-ungroup(pf.fc_by_age_gender1)
+pf.fc_by_age_gender1<-arrange(pf.fc_by_age_gender1,age)
+
+#or
+
+pf.fc_by_age_gender2<-pf %>%
+  filter(!is.na(gender))%>%
+  group_by(age,gender)%>%
+  summarise(mean_friend_count = mean(friend_count),
+            median_friend_count = median(friend_count),
+            n = n())%>%
+  ungroup()%>%
+  arrange(age)
+
+## Plotting Conditional Summaries
+
+ggplot(aes(x=age,y=median_friend_count),data = pf.fc_by_age_gender1)+
+  geom_line(aes(color=gender))
+
+## wide and long format
+
+#install.packages("tidyr") # only need to run this once 
+library(tidyr)
+spread(subset(pf.fc_by_age_gender1, select = c('gender', 'age', 'median_friend_count')), gender, median_friend_count)
+
+## Reshaping Data
+
+#install.packages('reshape2')
+library(reshape2)
+
+pf.fc_by_age_gender1.wide <- dcast(pf.fc_by_age_gender1,
+                                   age~gender,
+                                   value.var = 'median_friend_count')
+head(pf.fc_by_age_gender1.wide)
+
+## Ratio plot
+
+ggplot(aes(x=age,y = ratio),data = pf.fc_by_age_gender1.wide)+
+  geom_line()+
+  geom_hline(yintercept = 1, linetype = 2)
+
+## Third quantitative variable
+
+pf$year_joined<- floor(2014-pf$tenure/365)
+
+## cut a variable
+
+pf$year_joined.bucket <- cut(pf$year_joined,breaks = c(2004,2009,2011,2012,2014))
+
+## plotting it all together
+
+ggplot(aes(x=age,y=friend_count), data = subset(pf,!is.na(year_joined.bucket)))+
+  geom_line(aes(color=year_joined.bucket),stat = 'summary', fun.y = median)
+
+## plot the grand mean
+
+ggplot(aes(x=age,y=friend_count), data = subset(pf,!is.na(year_joined.bucket)))+
+  geom_line(aes(color=year_joined.bucket),stat = 'summary', fun.y = mean)+
+  geom_line(aes(x = age, y = friend_count),stat = 'summary',fun.y = mean, linetype = 2)
+
+## friending rate
+with(subset(pf,tenure>=1),summary(friend_count/tenure))
+
+## friendships initiated
+
+ggplot(aes(x = tenure, y = friendships_initiated/tenure ),data = subset(pf,tenure>=1))+
+  geom_line(aes(color=year_joined.bucket))
+
+
+## Bias Variance Trade off Revisited
+
+ggplot(aes(x = 7 * round(tenure / 7), y = friendships_initiated / tenure),
+       data = subset(pf, tenure > 0)) +
+  geom_line(aes(color = year_joined.bucket),
+            stat = "summary",
+            fun.y = mean)
+
+# or use smooth
+
+ggplot(aes(x=tenure,y=friendships_initiated/tenure),data = subset(pf,tenure>1))+
+  geom_smooth(aes(color= year_joined.bucket))
+
+## yogurt dataset
+yo<- read.csv('yogurt.csv')
+str(yo)
+
+## histogram revisited
+yo$id <- factor(yo$id)
+str(yo)
+
+library(ggplot2)
+p1<-ggplot(aes(x=obs),data = yo)+
+  geom_histogram()
+
+p2<-ggplot(aes(x=time),data = yo)+
+  geom_histogram()
+
+(p3<-ggplot(aes(x=strawberry),data = yo)+
+  geom_histogram())
+
+(p4<-ggplot(aes(x=blueberry),data = yo)+
+  geom_histogram())
+
+(p5<-ggplot(aes(x=pina.colada),data = yo)+
+  geom_histogram())
+
+(p6<-ggplot(aes(x=plain),data = yo)+
+  geom_histogram())
+
+(p7<-ggplot(aes(x=mixed.berry),data = yo)+
+  geom_histogram())
+
+(p8<-ggplot(aes(x=price),data = yo)+
+  geom_histogram())
+library(gridExtra)
+grid.arrange(p1,p2,p3,p4,p5,p6,p7,p8,ncol=1)
+
+## number of purchases
+yo <- transform(yo, all.purchase = strawberry+blueberry+pina.colada+plain+mixed.berry )
+
+## prices over time
+
+ggplot(aes(x = all.purchase),data = yo)+
+  geom_histogram(binwidth = 1)
+
+ggplot(aes(x = time,y = price),data = yo)+
+  geom_point(alpha = 0.25,shape = 21, fill = I('#F79420'),position=position_jitter(h=0))
+  
+## looking at samples of households
+
+set.seed(4321)
+sample.ids <- sample(levels(yo$id),16)
+
+ggplot(aes(x = time, y = price),
+       data = subset(yo, id %in% sample.ids))+
+  facet_wrap(~id)+
+  geom_line()+
+  geom_point(aes(size = all.purchase),pch=1)
+
+## scatterplot matrices
+#install.packages('GGally')
+library(GGally)
+theme_set(theme_minimal(20))
+
+set.seed(1836)
+pf_subset <- pf[ , c(2:7)]
+names(pf_subset)
+ggpairs(pf_subset[sample.int(nrow(pf_subset),1000),])
+
+## Even More Variables
+
+nci<- read.table('nci.tsv')
+
+colnames(nci)<- c(1:64)
+
+library(reshape2)
+nci.long.samp <- melt(as.matrix(nci[1:200,]))
+names(nci.long.samp)<- c('gene','case','value')
+head(nci.long.samp)
+
+## heat maps
+
+ggplot(aes(y=gene,x = case, fill= value),
+       data = nci.long.samp)+
+  geom_tile()+
+scale_fill_gradientn(colours = colorRampPalette(c('blue','red'))(100))
+
+############################################
+
+# price histograms with Facet 
+
+ggplot(aes(x = price),data = subset(diamonds,!is.na(price)))+
+  geom_histogram(aes(fill = cut))+
+  scale_x_log10()+
+  scale_y_continuous(limits = c(0,600))+
+  facet_wrap(~color)#or +scale_fill_brewer(type = 'qual')
+
+##price vs. table colored by cut
+
+ggplot(aes(x = table, y = price),data = diamonds)+
+  scale_x_continuous(breaks = seq(40,90,by=10))+
+  geom_point(aes(color = cut))
+
+## price vs. volume and diamond clarity
+diamonds$volume<-with(diamonds,x*y*z)
+ggplot(aes(x = volume ,y = price),data = diamonds)+
+  geom_point(aes(color = clarity))+
+  ylim(0,quantile(diamonds$volume,0.99))+
+  scale_y_log10()+
+  coord_cartesian(xlim = c(0,350))
+  
+## proportion of friendships initiated
+
+pf<-transform(pf, prop_initiated = ifelse(friend_count <= 0, 0, friendships_initiated/friend_count))
+
+## prop_initiated vs tenure
+
+ggplot(aes(x =tenure ,y = prop_initiated),data = subset(pf,!is.na(tenure)&prop_initiated>0))+
+         geom_line(aes(color = year_joined.bucket),stat = 'summary',fun.y= median)
+
+##Smoothing prop_initiated vs. tenure
+
+ggplot(aes(x =tenure ,y = prop_initiated),data = subset(pf,!is.na(tenure)&prop_initiated>0))+
+  geom_smooth(aes(color = year_joined.bucket))
+
+## Largest Group Mean prop_initiated
+
+with(subset(pf, year_joined.bucket == "(2012,2014]"), mean(prop_initiated))
+with(subset(pf, year_joined.bucket == "(2011,2012]"), mean(prop_initiated))
+with(subset(pf, year_joined.bucket == "(2009,2011]"), mean(prop_initiated))
+with(subset(pf, year_joined.bucket == "(2004,2009]"), mean(prop_initiated))
+
+# Price/Carat Binned, Faceted, & Colored
+
+ggplot(aes(x = cut,y = price/carat),data = diamonds)+
+  geom_point(aes(color = color,alpha = 0.25),position = position_jitter(h =0))+
+  facet_wrap(~clarity)
+
+ggplot(aes(x = cut,y = price/carat),data = diamonds)+
+  geom_point(aes(alpha = 0.25),position = position_jitter(h =0))+
+  facet_wrap(~clarity)+
+  scale_color_brewer(type = 'div')
+
+##################################################
+# finished lesson3
+###################################################
+
+#############################################
+#lesson4
+
+##scatterplot Review
+
+ggplot(aes(x=carat, y=price), data = diamonds)+
+  geom_point(fill = I('#F79420'),color = I('black'), shape = 21)+
+  xlim(0,quantile(diamonds$carat,0.99))+
+  ylim(0,quantile(diamonds$price,0.99))
+
+## price and carat relationship
+
+ggplot(aes(x=carat, y=price), data = diamonds)+
+  geom_point(fill = I('#F79420'),alpha = 1/4, shape = 21)+
+  stat_smooth(method = 'lm')+
+  xlim(0,quantile(diamonds$carat,0.99))+
+  ylim(0,quantile(diamonds$price,0.99))
+
+## ggparis function
+
+library(GGally)
+library(scales)
+#install.packages('memisc')
+library(memisc)
+
+set.seed(2016)
+diamond_samp<- diamonds[sample(1:length(diamonds$price),10000),]
+ggpairs(diamond_samp, 
+        lower = list(continuous = wrap("points", shape = I('.'))), 
+        upper = list(combo = wrap("box", outlier.shape = I('.'))))
+
+## The demand of diamonds
+
+library(gridExtra)
+
+plot1 <- qplot(x = price, data = diamonds,binwidth = 100,fill = I('#099DD9')) + 
+  ggtitle('Price')
+
+plot2 <- qplot(x=price, data = diamonds,binwidth = 0.01, fill = I('#F79420')) +
+  scale_x_log10()+
+  ggtitle('Price (log10)')
+
+grid.arrange(plot1,plot2,nrow =1)
+
+
+## scatterplot transformation
+cuberoot_trans = function() trans_new('cuberoot',
+                                      transform = function(x) x^(1/3),
+                                      inverse = function(x) x^3)
+
+ggplot(aes(carat,price),data = diamonds)+
+  geom_point()+
+  scale_x_continuous(trans = cuberoot_trans(),limits = c(0.2,3),
+                     breaks = c(0.2,0.5,1,2,3))+
+  scale_y_continuous(trans = cuberoot_trans(),limits = c(350,15000),
+                     breaks = c(350,1000,5000,10000,15000))+
+  ggtitle('Price (log10) by Cube-Root of Carat')
+
+## overplotting revisited
+
+ggplot(aes(carat,price),data = diamonds)+
+  geom_point(alpha = 0.5,size = 0.75, position = 'jitter')+
+  scale_x_continuous(trans = cuberoot_trans(),limits = c(0.2,3),
+                     breaks = c(0.2,0.5,1,2,3))+
+  scale_y_continuous(trans = cuberoot_trans(),limits = c(350,15000),
+                     breaks = c(350,1000,5000,10000,15000))+
+  ggtitle('Price (log10) by Cube-Root of Carat')
+
+## price vs carat and clarity
+
+ggplot(aes(carat,price),data = diamonds)+
+  geom_point(aes(color = clarity),alpha = 0.5,size = 1, position = 'jitter')+
+  scale_x_continuous(trans = cuberoot_trans(),limits = c(0.2,3),
+                     breaks = c(0.2,0.5,1,2,3))+
+  scale_y_continuous(trans = cuberoot_trans(),limits = c(350,15000),
+                     breaks = c(350,1000,5000,10000,15000))+
+  ggtitle('Price (log10) by Cube-Root of Carat')
+
+#or
+library(RColorBrewer)
+ggplot(aes(x = carat, y = price, color = clarity), data = diamonds) + 
+  geom_point(alpha = 0.5, size = 1, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'Clarity', reverse = T,
+                                          override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(trans = cuberoot_trans(), limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous(trans = log10_trans(), limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) +
+  ggtitle('Price (log10) by Cube-Root of Carat and Clarity')
+
+
+## price vs carat and cut
+
+ggplot(aes(x = carat, y = price, color = cut), data = diamonds) + 
+  geom_point(alpha = 0.5, size = 1, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'Cut', reverse = T,
+                                          override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(trans = cuberoot_trans(), limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous(trans = log10_trans(), limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) +
+  ggtitle('Price (log10) by Cube-Root of Carat and Cut')
+
+## price vs carat and color
+
+ggplot(aes(x = carat, y = price, color = color), data = diamonds) + 
+  geom_point(alpha = 0.5, size = 1, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'Color',
+                                          override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(trans = cuberoot_trans(), limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous(trans = log10_trans(), limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) +
+  ggtitle('Price (log10) by Cube-Root of Carat and Color')
+
+
+# linear model
+
+lm((log10(diamonds$price))~I(diamonds$carat^1/3))
+
+##A Bigger, Better Data Set
+library(data.table)
+bigdia<-load('BigDiamonds.Rda')
+diamondsbig$price<-log(diamondsbig$price)
+
+
+#m1<-lm(I(log(price))~I(carat^(1/3)),data = diamondsbig[sample(nrow(diamondsbig),10000,replace = FALSE),])
+m1<-lm(price~I(carat^(1/3)),data = diamondsbig[diamondsbig$price<10000 & diamondsbig$cert =='GIA',])
+m2<-update(m1,~.+cut)
+m3<-update(m2,~.+carat)
+m4<-update(m3,~.+color)
+m5<-update(m4,~.+clarity)
+
+##predictions
+
+thisDiamonds <- data.frame(carat = 1.00, cut = 'V.Good',
+                           color = 'I', clarity = 'VS1')
+
+modelEstimate <- predict(m5, newdata = thisDiamonds,
+                         interval= 'prediction', level = .95)
+
+dat = data.frame(m4$model, m4$residuals) 
+
+with(dat, sd(m4.residuals)) 
+
+with(subset(dat, carat > .9 & carat < 1.1), sd(m4.residuals)) 
+
+dat$resid <- as.numeric(dat$m4.residuals)
+ggplot(aes(y = resid, x = round(carat, 2)), data = dat) + 
+  geom_line(stat = "summary", fun.y = sd) 
+
+
